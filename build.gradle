@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id'org.openrewrite.rewrite' version'6.1.15'
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = '17'
+}
+repositories {
+    mavenCentral()
+}
+rewrite{
+    activeRecipe(
+            "org.example.AddLogLevelGuard")
+    //configFile = project.getRootProject().file("rewrite.yml")
+
+}
+dependencies {
+    implementation(platform("org.openrewrite.recipe:rewrite-recipe-bom:2.0.7"))
+    implementation 'org.openrewrite:rewrite-core:8.1.10'
+    runtimeOnly 'org.openrewrite:rewrite-java:8.1.10'
+    implementation 'org.openrewrite.recipe:rewrite-logging-frameworks:2.0.2'
+    implementation("org.openrewrite:rewrite-java")
+    runtimeOnly("org.openrewrite:rewrite-java-17")
+    annotationProcessor("org.projectlombok:lombok:latest.release")
+    testImplementation("org.openrewrite:rewrite-test")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+    testImplementation group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.1'
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '2.0.7'
+    rewrite("org.example:recipe-log:+")
+}
+
+test {
+    useJUnitPlatform()
+}
