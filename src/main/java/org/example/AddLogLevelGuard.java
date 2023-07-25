@@ -20,39 +20,27 @@ public class AddLogLevelGuard extends Recipe {
         return "Add Guards";
     }
 
-    public TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaVisitor<ExecutionContext>() {
-            @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (method.getSelect() instanceof J.Identifier &&
-                        ((J.Identifier) method.getSelect()).getSimpleName().equals(LOGGER_NAME) &&
-                        method.getSimpleName().equals("debug")) {
-                    return method;
-                }
-                return super.visitMethodInvocation(method, ctx);
-            }
-        };
-    }
-
+    @Override
     public JavaVisitor<ExecutionContext> getVisitor() {
-        Cursor cursor = this.getVisitor().getCursor();
-        JavaTemplate logLevelGuardTemplate = JavaTemplate.builder("${loggerName}.isDebugEnabled() ? ${cursor} : null")
-                .imports("org.slf4j.Logger")
-                .build();
-
-        return new JavaVisitor<ExecutionContext>() {
-            @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (method.getSelect() instanceof J.Identifier &&
-                        ((J.Identifier) method.getSelect()).getSimpleName().equals(LOGGER_NAME) &&
-                        method.getSimpleName().equals("debug")) {
-                    return logLevelGuardTemplate.apply(getCursor(),method.getCoordinates().replace(),method.getArguments().get(0));
-//                            .withTemplateParameter("loggerName", method.getSelect())
-//                            .withCursor(method);
-                }
-                return super.visitMethodInvocation(method, ctx);
-            }
-        };
+        return new LogLevelGuardVisitor();
     }
+    private static class LogLevelGuardVisitor extends JavaIsoVisitor<ExecutionContext> {
 
+        private final MethodMatcher logMethodMatcher = new MethodMatcher("org.sl4j.Logger log(..)");
+
+        @Override
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext context) {
+            J.MethodInvocation mi = super.visitMethodInvocation(method, context);
+            if (method.getSelect() instanceof J.Identifier &&
+                    ((J.Identifier) method.getSelect()).getSimpleName().equals(LOGGER_NAME) &&
+                    method.getSimpleName().equals("debug")) {
+                return method;
+            }
+            JavaTemplate logLevelGuardTemplate = JavaTemplate.builder("${loggerName}.isDebugEnabled() ? ${cursor} : null")
+                    .imports("org.slf4j.Logger")
+                    .build();
+            mi = logLevelGuardTemplate.apply(getCursor(), mi.getCoordinates().replace(), mi.getArguments().get(0)); //Template Invocation
+            return mi;
+        }
+    }
 }
